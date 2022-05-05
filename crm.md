@@ -29,6 +29,7 @@
 
 - 用户表
 - 权限表
+- 用户权限关系表
 
 用户表和权限表是一个多对多的关系
 
@@ -46,6 +47,59 @@ class User(models.Model):
     id = models.AutoField(auto_increment=True, primary_key=True)
     name = models.CharField(max_length=32)
     urls = models.ManyToManyField(to='Privilege', null=True)
+```
+
+缺点：
+
+对同类的用户做权限的增删改查太麻烦，比如张三李四都是主管，他们拥有相同的权限，当对销售专管做权限操作的时候，张三李四拥有的权限都要修改，我们可以将销售主管这个角色抽离出来，将角色分配给人，将权限分配给角色
+
+
+
+### 1.3 第二版表结构设计
+
+- 用户表
+- 权限表
+- 角色表
+- 用户角色关系表（多对多）
+- 角色权限表（多对多）
+
+在代码中就是三个类，五张表
+
+```python
+class Permission(models.Model):
+    """
+    权限类
+    """
+    title = models.CharField(max_length=32, verbose_name='标题')
+    url = models.CharField(max_length=128, verbose_name='含正则的URL')
+
+    def __str__(self):
+        return self.title
+
+
+class Role(models.Model):
+    """
+    角色表
+    """
+    title = models.CharField(max_length=32, verbose_name='角色名称')
+    permissions = models.ManyToManyField(to='Permission', verbose_name='拥有的所有权限', blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class User(models.Model):
+    """
+    用户表
+    """
+    name = models.CharField(max_length=32, verbose_name='用户名')
+    password = models.CharField(max_length=32, verbose_name='密码')
+    email = models.CharField(max_length=32, verbose_name='邮箱')
+    roles = models.ManyToManyField(to='Role', verbose_name='拥有的所有角色', blank=True)
+
+    def __str__(self):
+        return self.name
+
 ```
 
 
