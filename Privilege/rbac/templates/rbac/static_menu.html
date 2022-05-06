@@ -1,0 +1,10 @@
+<div class="static-menu">
+    {% for item in menu_list %}
+    <a href="{{ item.url }}" class="{% if current_url == item.url %}} active {% endif %}}">
+        <span class="icon-wrap">
+            <i class="{{ item.icon }}"></i>
+        </span>
+        {{ item.title }}
+    </a>
+    {% endfor %}
+</div>

@@ -246,6 +246,300 @@ class CheckPermission(MiddlewareMixin):
 
 3. 将中间件整合到权限组件中
 
+### 1.8 动态菜单
+
+常见菜单：
+
+- 一级菜单
+- 二级菜单(最常见)
+
+#### 1.8.1 一级菜单设计思路
+
+1. 修改数据库权限表，再加一列，判断该权限能否成为一级菜单,添加图标
+2. 在用户认证成功之后，将一级菜单也写入session中
+3. 用户再次发起请求时，读取session中的一级菜单，渲染在页面中
+
+知识点：
+
+1. 图标网站：https://fontawesome.dashgame.com/
+2. 在上述第三步中，学习了`inclusion_tag`
+
+表结构
+
+```
+from django.db import models
+
+
+class Permission(models.Model):
+    """
+    权限类
+    """
+    title = models.CharField(max_length=32, verbose_name='标题')
+    url = models.CharField(max_length=128, verbose_name='含正则的URL')
+    is_menu = models.BooleanField(verbose_name='是否可以做菜单', default=False)
+    icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class Role(models.Model):
+    """
+    角色表
+    """
+    title = models.CharField(max_length=32, verbose_name='角色名称')
+    permissions = models.ManyToManyField(to='Permission', verbose_name='拥有的所有权限', blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class User(models.Model):
+    """
+    用户表
+    """
+    name = models.CharField(max_length=32, verbose_name='用户名')
+    password = models.CharField(max_length=32, verbose_name='密码')
+    email = models.CharField(max_length=32, verbose_name='邮箱')
+    roles = models.ManyToManyField(to='Role', verbose_name='拥有的所有角色', blank=True)
+
+    def __str__(self):
+        return self.name
+
+```
+
+模板文件
+layout.html
+
+```
+{% load rbac %}
+{% static_menu request %}
+
+```
+
+```
+{% load static %}
+{% load rbac %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>路飞学城</title>
+    <link rel="shortcut icon" href="{% static 'imgs/luffy-study-logo.png' %} ">
+    <link rel="stylesheet" href="{% static 'plugins/bootstrap/css/bootstrap.css' %} "/>
+    <link rel="stylesheet" href="{% static 'plugins/font-awesome/css/font-awesome.css' %} "/>
+    <link rel="stylesheet" href="{% static 'css/commons.css' %} "/>
+    <link rel="stylesheet" href="{% static 'css/nav.css' %} "/>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        .no-radius {
+            border-radius: 0;
+        }
+
+        .no-margin {
+            margin: 0;
+        }
+
+        .pg-body > .left-menu {
+            background-color: #EAEDF1;
+            position: absolute;
+            left: 1px;
+            top: 48px;
+            bottom: 0;
+            width: 220px;
+            border: 1px solid #EAEDF1;
+            overflow: auto;
+        }
+
+        .pg-body > .right-body {
+            position: absolute;
+            left: 225px;
+            right: 0;
+            top: 48px;
+            bottom: 0;
+            overflow: scroll;
+            border: 1px solid #ddd;
+            border-top: 0;
+            font-size: 13px;
+            min-width: 755px;
+        }
+
+        .navbar-right {
+            float: right !important;
+            margin-right: -15px;
+        }
+
+        .luffy-container {
+            padding: 15px;
+        }
+
+        .left-menu .menu-body .static-menu {
+
+        }
+
+        .left-menu .menu-body .static-menu .icon-wrap {
+            width: 20px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .left-menu .menu-body .static-menu a {
+            text-decoration: none;
+            padding: 8px 15px;
+            border-bottom: 1px solid #ccc;
+            color: #333;
+            display: block;
+            background: #efefef;
+            background: -webkit-gradient(linear, left bottom, left top, color-stop(0, #efefef), color-stop(1, #fafafa));
+            background: -ms-linear-gradient(bottom, #efefef, #fafafa);
+            background: -moz-linear-gradient(center bottom, #efefef 0%, #fafafa 100%);
+            background: -o-linear-gradient(bottom, #efefef, #fafafa);
+            filter: progid:dximagetransform.microsoft.gradient(startColorStr='#e3e3e3', EndColorStr='#ffffff');
+            -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorStr='#fafafa',EndColorStr='#efefef')";
+            box-shadow: inset 0px 1px 1px white;
+        }
+
+        .left-menu .menu-body .static-menu a:hover {
+            color: #2F72AB;
+            border-left: 2px solid #2F72AB;
+        }
+
+        .left-menu .menu-body .static-menu a.active {
+            color: #2F72AB;
+            border-left: 2px solid #2F72AB;
+        }
+    </style>
+</head>
+<body>
+
+<div class="pg-header">
+    <div class="nav">
+        <div class="logo-area left">
+            <a href="#">
+                <img class="logo" src="{% static 'imgs/logo.svg' %}">
+                <span style="font-size: 18px;">路飞学城 </span>
+            </a>
+        </div>
+
+        <div class="left-menu left">
+            <a class="menu-item">资产管理</a>
+            <a class="menu-item">用户信息</a>
+            <a class="menu-item">路飞管理</a>
+            <div class="menu-item">
+                <span>使用说明</span>
+                <i class="fa fa-caret-down" aria-hidden="true"></i>
+                <div class="more-info">
+                    <a href="#" class="more-item">管他什么菜单</a>
+                    <a href="#" class="more-item">实在是编不了</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="right-menu right clearfix">
+
+            <div class="user-info right">
+                <a href="#" class="avatar">
+                    <img class="img-circle" src="{% static 'imgs/default.png' %}">
+                </a>
+
+                <div class="more-info">
+                    <a href="#" class="more-item">个人信息</a>
+                    <a href="#" class="more-item">注销</a>
+                </div>
+            </div>
+
+            <a class="user-menu right">
+                消息
+                <i class="fa fa-commenting-o" aria-hidden="true"></i>
+                <span class="badge bg-success">2</span>
+            </a>
+
+            <a class="user-menu right">
+                通知
+                <i class="fa fa-envelope-o" aria-hidden="true"></i>
+                <span class="badge bg-success">2</span>
+            </a>
+
+            <a class="user-menu right">
+                任务
+                <i class="fa fa-bell-o" aria-hidden="true"></i>
+                <span class="badge bg-danger">4</span>
+            </a>
+        </div>
+
+    </div>
+</div>
+<div class="pg-body">
+    <div class="left-menu">
+        <div class="menu-body">
+            {% static_menu request %}
+
+        </div>
+    </div>
+    <div class="right-body">
+        <div>
+            <ol class="breadcrumb no-radius no-margin" style="border-bottom: 1px solid #ddd;">
+
+                <li><a href="#">首页</a></li>
+                <li class="active">客户管理</li>
+
+            </ol>
+        </div>
+        {% block content %} {% endblock %}
+    </div>
+</div>
+
+
+<script src="{% static 'js/jquery-3.3.1.min.js' %} "></script>
+<script src="{% static 'plugins/bootstrap/js/bootstrap.js' %} "></script>
+{% block js %} {% endblock %}
+</body>
+</html>
+```
+
+
+
+函数
+
+```
+from django.template import Library
+from django.conf import settings
+
+register = Library()
+
+
+@register.inclusion_tag('rbac/static_menu.html')
+def static_menu(request):
+    """
+    创建一级菜单
+    :return: 
+    """
+    current_url= request.path_info
+    menu_list = request.session.get(settings.MENU_SESSION_KEY)
+    return {'menu_list': menu_list, 'current_url':current_url}
+
+```
+
+模板文件：static_menu.html
+
+```
+<div class="static-menu">
+    {% for item in menu_list %}
+    <a href="{{ item.url }}" class="{% if current_url == item.url %}} active {% endif %}}">
+        <span class="icon-wrap">
+            <i class="{{ item.icon }}"></i>
+        </span>
+        {{ item.title }}
+    </a>
+    {% endfor %}
+</div>
+```
+
+
+
 ## 二. 增删改查组件
 
 ## 三. CRM业务组件
