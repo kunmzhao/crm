@@ -127,6 +127,59 @@ class User(models.Model):
 5. 用户角色表
    <img src="picture/image-20220506140053907.png" alt="image-20220506140053907" style="zoom:50%;" />
 
+### 1.6 快速完成基本权限控制
+
+设计思路：
+<img src="picture/image-20220506142231301.png" alt="image-20220506142231301" style="zoom:50%;" />
+
+1. 用户第一次请求从登录页面开始
+   1. 用户发起登录页面的GET请求
+   2. 服务端响应登录页面
+2. 用户将登陆信息通过POST方式发送
+3. 获取当前用户的所有权限信息并放入session中
+4. 用户再次发起请求，请求中就会有该用户的所有权限信息，在中间件中判断用户访问的URL是否在该用户的权限中
+
+知识点：
+
+1. ORM:跨表查询
+2. 中间件
+3. session
+4. DJango在寻找模板文件的时候优先去最外层目录照templates文件夹，如果没有找到，就会按照app注册的顺序去子项目的templates中寻找
+
+模板函数：
+
+```python
+from django.shortcuts import HttpResponse, render, redirect
+# TBD: 不要跨项目引入
+from rbac.models import User
+
+
+def login(request):
+    if request.method == "GET":
+        return render(request, 'login.html')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    print(username, password)
+    user_obj = User.objects.filter(name=username, password=password).first()
+    if not user_obj:
+        # 用户名或者密码不正确
+        return render(request, 'login.html', {"info": '用户名或者密码不正确'})
+    # 登陆成功，查找该用户的所有权限
+    """
+    本次查询垮了两张表，注意去重和为空的筛选
+    """
+    permission_queryset = user_obj.roles.filter(permissions__isnull=False).values('permissions__id',                                                                                																																							'permissions__url').distinct()
+    # 获取权限中的所有URL
+    permission_list = [item['permissions__url'] for item in permission_queryset]
+
+    # 将权限信息写入session中
+    request.session['luffy_permission_url_list'] = permission_list
+    return redirect('/customer/list/')
+
+```
+
+
+
 ## 二. 增删改查组件
 
 ## 三. CRM业务组件

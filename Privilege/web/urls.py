@@ -1,6 +1,7 @@
 from django.conf.urls import url
 from web.views import customer
 from web.views import payment
+from web.views import account
 
 urlpatterns = [
     url(r'^customer/list/$', customer.customer_list),
@@ -14,4 +15,6 @@ urlpatterns = [
     url(r'^payment/add/$', payment.payment_add),
     url(r'^payment/edit/(?P<pid>\d+)/$', payment.payment_edit),
     url(r'^payment/del/(?P<pid>\d+)/$', payment.payment_del),
+
+    url(r'^login/$', account.login),
 ]
