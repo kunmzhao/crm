@@ -108,6 +108,25 @@ class User(models.Model):
 
 销售系统的业务代码实现
 
+### 1.5 将web中实现的权限的录入权限表中
+
+1. 权限表
+
+<img src="picture/image-20220506134402502.png" alt="image-20220506134402502" style="zoom:50%;" />
+
+2. 角色表
+
+   <img src="picture/image-20220506135443904.png" alt="image-20220506135443904" style="zoom:50%;" />
+
+3. 角色权限关系表
+   <img src="picture/image-20220506135731126.png" alt="image-20220506135731126" style="zoom:50%;" />
+
+4. 用户表
+   <img src="picture/image-20220506135952666.png" alt="image-20220506135952666" style="zoom:50%;" />
+
+5. 用户角色表
+   <img src="picture/image-20220506140053907.png" alt="image-20220506140053907" style="zoom:50%;" />
+
 ## 二. 增删改查组件
 
 ## 三. CRM业务组件
