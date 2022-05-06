@@ -234,7 +234,17 @@ class CheckPermission(MiddlewareMixin):
 
 ```
 
+### 1.7 以上代码的优化完善
 
+1. 用户登录和权限初始化的分离
+
+2. 将配置信息放入项目的配置文件中setting.py
+
+   ```python
+   from django.conf import settings
+   ```
+
+3. 将中间件整合到权限组件中
 
 ## 二. 增删改查组件
 

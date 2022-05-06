@@ -1,9 +1,10 @@
 import re
 from django.utils.deprecation import MiddlewareMixin
-from django.shortcuts import render, redirect, HttpResponse
+from django.shortcuts import HttpResponse
+from django.conf import settings
 
 
-class CheckPermission(MiddlewareMixin):
+class RbacMiddleware(MiddlewareMixin):
     """
     用户权限信息校验
     """
@@ -14,22 +15,17 @@ class CheckPermission(MiddlewareMixin):
         :param request:
         :return:
         """
-        # 白名单
-        valid_url_list = [
-            '/login/',
-            '/admin/*'
-        ]
         # 获取当前请求的url
         current_url = request.path_info
 
         # 判断url是否在白名单里面
-        for item in valid_url_list:
+        for item in settings.VALID_URL_LIST:
             item = "^%s$" % item
             if re.match(item, current_url):
                 return None
 
         # 获取当前用户session中的权限
-        permission_list = request.session['luffy_permission_url_list']
+        permission_list = request.session[settings.PERMISSION_SESSION_KEY]
         if not permission_list:
             return HttpResponse('为获取用户权限信息，请登录')
 
