@@ -8,10 +8,10 @@ def login(request):
         return render(request, 'login.html')
     username = request.POST.get('username')
     password = request.POST.get('password')
-    print(username, password)
+    # 查找用户
     user_obj = User.objects.filter(name=username, password=password).first()
+    # 用户名或者密码不正确
     if not user_obj:
-        # 用户名或者密码不正确
         return render(request, 'login.html', {"info": '用户名或者密码不正确'})
     # 登陆成功，查找该用户的所有权限
     """

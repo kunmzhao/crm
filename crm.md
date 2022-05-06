@@ -143,8 +143,11 @@ class User(models.Model):
 
 1. ORM:跨表查询
 2. 中间件
+   process_request函数中返回None则可以继续执行下面的中间件，否则返回
 3. session
+   设置中间件，获取中间件
 4. DJango在寻找模板文件的时候优先去最外层目录照templates文件夹，如果没有找到，就会按照app注册的顺序去子项目的templates中寻找
+5. 正则匹配
 
 模板函数：
 
@@ -175,6 +178,59 @@ def login(request):
     # 将权限信息写入session中
     request.session['luffy_permission_url_list'] = permission_list
     return redirect('/customer/list/')
+
+```
+
+中间件
+
+```python
+import re
+from django.utils.deprecation import MiddlewareMixin
+from django.shortcuts import render, redirect, HttpResponse
+
+
+class CheckPermission(MiddlewareMixin):
+    """
+    用户权限信息校验
+    """
+
+    def process_request(self, request):
+        """
+        验证用户权限
+        :param request:
+        :return:
+        """
+        # 白名单
+        valid_url_list = [
+            '/login/',
+            '/admin/*'
+        ]
+        # 获取当前请求的url
+        current_url = request.path_info
+
+        # 判断url是否在白名单里面
+        for item in valid_url_list:
+            item = "^%s$" % item
+            if re.match(item, current_url):
+                return None
+
+        # 获取当前用户session中的权限
+        permission_list = request.session['luffy_permission_url_list']
+        if not permission_list:
+            return HttpResponse('为获取用户权限信息，请登录')
+
+        # 判断用户当前请求是否在session中
+        flag = False
+        for url in permission_list:
+            # 匹配应该严格
+            reg = "^%s$" % url
+            # 用户拥有权限
+            if re.match(reg, current_url):
+                flag = True
+                break
+
+        if not flag:
+            return HttpResponse('无权访问')
 
 ```
 
