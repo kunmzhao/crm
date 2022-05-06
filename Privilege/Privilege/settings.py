@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rbac.apps.App01Config',
+    'web.apps.WebConfig',
 ]
 
 MIDDLEWARE = [
