@@ -29,16 +29,31 @@ class RbacMiddleware(MiddlewareMixin):
         if not permission_list:
             return HttpResponse('为获取用户权限信息，请登录')
 
-        print(permission_list)
         # 判断用户当前请求是否在session中
         flag = False
+
+        url_record = [
+            {'url': '#', 'title': '首页'}
+        ]
         for item in permission_list:
             # 匹配应该严格
             reg = "^%s$" % (item['url'],)
             # 用户拥有权限
             if re.match(reg, current_url):
                 flag = True
+                # 菜单选中
                 request.current_selected_permission = item['pid'] or item['id']
+                # 导航条
+                if not item['pid']:
+                    url_record.append(
+                        {'url': item['url'], 'title': item['title']}
+                    )
+                else:
+                    url_record.extend([
+                        {'url': item['p_url'], 'title': item['p_title']},
+                        {'url': item['url'], 'title': item['title']}
+                    ])
+                request.url_record = url_record
                 break
 
         if not flag:

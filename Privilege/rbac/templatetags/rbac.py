@@ -61,4 +61,10 @@ def multi_menu(request):
         }
     }
     """
+
     return {'ordered_dict': ordered_dict}
+
+
+@register.inclusion_tag('rbac/url_record.html')
+def url_record(request):
+    return {'url_record': request.url_record}

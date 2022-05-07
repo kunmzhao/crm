@@ -708,72 +708,75 @@ def multi_menu(request):
 1. 在渲染到页面的时候，通过JS控制菜单的点击事件
 2. 构建数据结构的时候，将无序字典转化为有序字典，同时添加class字段到构建的数据结构中，更好的渲染页面
 
-#### 1.8.3 点击非菜单权限时，将对应的菜单权限选中或展开
+### 1.9 导航条制作
 
-1. 数据库修改，添加一个pid字段,用于关联本表中可以成为二级菜单权限
+思路：
 
-   ```
-   class Permission(models.Model):
-       """
-       权限表
-       """
-       title = models.CharField(max_length=32, verbose_name='标题')
-       url = models.CharField(max_length=128, verbose_name='含正则的URL')
-       is_menu = models.BooleanField(verbose_name='是否可以做菜单', default=False)
-       icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
-       menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
-                                help_text='null表示不是菜单，否则代表二级菜单')
-       pid = models.ForeignKey(to='Permission', related_name='parents', verbose_name='关联的权限', help_text='该权限不是菜单，关联一个权限',
-                               null=True, on_delete=models.CASCADE)
-   ```
-
-2. 在初始化init_permission中将权限列表中中原先的url,添加一个pid
+1. 在初始化的时候，将所有的权限的父权限标题和url也传递到权限列表中
 
    ```python
    permission_list.append(
      {
        'id': item['permissions__id'],
        'url': item['permissions__url'],
-       'pid': item['permissions__pid__id']
+       'pid': item['permissions__pid__id'],
+       'title': item['permissions__title'],
+       'p_title': item['permissions__pid__title'],
+       'p_url': item['permissions__pid__url'],
      }
    )
    ```
 
-   
-
-3. 在中间键中，判断当前权限的id或者pid(可以称为菜单的选择id,否在为pid),封装在request,传递给inclusion_tag中
+2. 在中间键中将访问的权限的父权限及本身存入列表中，通过request传递给inclusion_tag中
 
    ```python
-   for item in permission_list:
-   	# 匹配应该严格
-   	reg = "^%s$" % (item['url'],)
-   	# 用户拥有权限
-   	if re.match(reg, current_url):
-   		flag = True
-   		request.current_selected_permission = item['pid'] or item['id']
-   		break
+   if re.match(reg, current_url):
+     flag = True
+     # 菜单选中
+     request.current_selected_permission = item['pid'] or item['id']
+     # 导航条
+     if not item['pid']:
+       url_record.append(
+         {'url': item['url'], 'title': item['title']}
+       )
+       else:
+         url_record.extend([
+           {'url': item['p_url'], 'title': item['p_title']},
+           {'url': item['url'], 'title': item['title']}
+         ])
+         request.url_record = url_record
+         break
    ```
 
-   
+3. 渲染到页面中
 
-4. 在inclusion_tag中通过3中传递的id或者pid判断选中的菜单权限
+   1. 更上面动态菜单一样，写一个注册函数
 
-   ```python
-   for key in key_list:
-     val = menu_dict[key]
-     val['class'] = 'hide'
-     for per in val['children']:
-       if per['id'] == request.current_selected_permission:
-         val['class'] = ''
-         per['class'] = 'active'
-         ordered_dict[key] = val
-   ```
+      ```python
+      @register.inclusion_tag('rbac/url_record.html')
+      def url_record(request):
+          return {'url_record': request.url_record}
+      ```
 
-   
+   2. 创建html文件
 
-知识点：
+      ```html
+      <div>
+          <ol class="breadcrumb no-radius no-margin" style="border-bottom: 1px solid #ddd;">
+      
+              {% for item in url_record %}
+                  {% if forloop.last %}
+                      <li>{{ item.title }}</li>
+                  {% else %}
+                      <li><a href="{{ item.url }}">{{ item.title }}</a></li>
+              {% endif %}
+              {% endfor %}
+      
+          </ol>
+      </div>
+      ```
 
-1. 表中字段的自关联
+      
 
 ## 二. 增删改查组件
 

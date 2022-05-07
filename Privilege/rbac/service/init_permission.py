@@ -14,6 +14,8 @@ def init_permission(user_obj, request):
                                                                                   'permissions__title',
                                                                                   'permissions__url',
                                                                                   'permissions__pid__id',
+                                                                                  'permissions__pid__title',
+                                                                                  'permissions__pid__url',
                                                                                   'permissions__is_menu',
                                                                                   'permissions__icon',
                                                                                   'permissions__menu__id',
@@ -28,7 +30,10 @@ def init_permission(user_obj, request):
             {
                 'id': item['permissions__id'],
                 'url': item['permissions__url'],
-                'pid': item['permissions__pid__id']
+                'pid': item['permissions__pid__id'],
+                'title': item['permissions__title'],
+                'p_title': item['permissions__pid__title'],
+                'p_url': item['permissions__pid__url'],
             }
         )
         menu_id = item['permissions__menu__id']
