@@ -13,6 +13,7 @@ def init_permission(user_obj, request):
     permission_queryset = user_obj.roles.filter(permissions__isnull=False).values('permissions__id',
                                                                                   'permissions__title',
                                                                                   'permissions__url',
+                                                                                  'permissions__name',
                                                                                   'permissions__pid__id',
                                                                                   'permissions__pid__title',
                                                                                   'permissions__pid__url',
@@ -24,18 +25,16 @@ def init_permission(user_obj, request):
                                                                                   ).distinct()
     # 获取权限中的所有URL+菜单信
     menu_dict = {}
-    permission_list = []
+    permission_dict = {}
     for item in permission_queryset:
-        permission_list.append(
-            {
-                'id': item['permissions__id'],
-                'url': item['permissions__url'],
-                'pid': item['permissions__pid__id'],
-                'title': item['permissions__title'],
-                'p_title': item['permissions__pid__title'],
-                'p_url': item['permissions__pid__url'],
-            }
-        )
+        permission_dict[item['permissions__name']] = {
+            'id': item['permissions__id'],
+            'url': item['permissions__url'],
+            'pid': item['permissions__pid__id'],
+            'title': item['permissions__title'],
+            'p_title': item['permissions__pid__title'],
+            'p_url': item['permissions__pid__url'],
+        }
         menu_id = item['permissions__menu__id']
         if not menu_id:
             continue
@@ -53,8 +52,8 @@ def init_permission(user_obj, request):
                 'icon': item['permissions__menu__icon'],
                 'children': [node],
             }
-    print(menu_dict)
+    print(permission_dict)
     # 将权限信息写入session中
-    request.session[settings.PERMISSION_SESSION_KEY] = permission_list
+    request.session[settings.PERMISSION_SESSION_KEY] = permission_dict
     # 将菜单信息写入session中
     request.session[settings.MENU_SESSION_KEY] = menu_dict

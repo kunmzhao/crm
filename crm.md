@@ -776,6 +776,119 @@ def multi_menu(request):
       </div>
       ```
 
+### 1.10 权限控制力度到按钮
+
+1. 在数据库权限模型中添加name字段，为权限的别名
+
+   ```python
+   class Permission(models.Model):
+       """
+       权限表
+       """
+       title = models.CharField(max_length=32, verbose_name='标题')
+       url = models.CharField(max_length=128, verbose_name='含正则的URL')
+       name = models.CharField(max_length=32, verbose_name='URL的别名', unique=True)
+       is_menu = models.BooleanField(verbose_name='是否可以做菜单', default=False)
+       icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+       menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
+                                help_text='null表示不是菜单，否则代表二级菜单')
+       pid = models.ForeignKey(to='Permission', related_name='parents', verbose_name='关联的权限', help_text='该权限不是菜单，关联一个权限',
+                               null=True, on_delete=models.CASCADE)
+   
+       def __str__(self):
+           return self.title
+   ```
+
+   
+
+2. 在初始化权限时，修改权限列表为字典，键为权限的别名
+
+   ```python
+   from django.conf import settings
+   
+   
+   def init_permission(user_obj, request):
+       """
+       用户权限的初始化
+       :param user_obj: 当前登陆用户
+       :param request: 请求
+       :return:
+       """
+   
+       # 本次查询垮了三张表，注意去重和为空的筛选
+       permission_queryset = user_obj.roles.filter(permissions__isnull=False).values('permissions__id',
+                                                                                     'permissions__title',
+                                                                                     'permissions__url',
+                                                                                     'permissions__name',                                                                             																																														'permissions__pid__id',                                                                                 'permissions__pid__title',
+   'permissions__pid__url',
+   'permissions__menu__icon',                                                                           'permissions__menu__title',
+     ).distinct()
+       # 获取权限中的所有URL+菜单信
+       menu_dict = {}
+       permission_dict = {}
+       for item in permission_queryset:
+           permission_dict[item['permissions__name']] = {
+               'id': item['permissions__id'],
+               'url': item['permissions__url'],
+               'pid': item['permissions__pid__id'],
+               'title': item['permissions__title'],
+               'p_title': item['permissions__pid__title'],
+               'p_url': item['permissions__pid__url'],
+           }
+           menu_id = item['permissions__menu__id']
+           if not menu_id:
+               continue
+           node = {
+               'title': item['permissions__title'],
+               'url': item['permissions__url'],
+               'icon': item['permissions__icon'],
+               'id': item['permissions__id']
+           }
+           if menu_id in menu_dict:
+               menu_dict[menu_id]['children'].append(node)
+           else:
+               menu_dict[menu_id] = {
+                   'title': item['permissions__menu__title'],
+                   'icon': item['permissions__menu__icon'],
+                   'children': [node],
+               }
+       print(permission_dict)
+       # 将权限信息写入session中
+       request.session[settings.PERMISSION_SESSION_KEY] = permission_dict
+       # 将菜单信息写入session中
+       request.session[settings.MENU_SESSION_KEY] = menu_dict
+   
+   ```
+
+   
+
+3. 渲染时自定义过滤器，判定按钮能否显示在页面上
+
+   1. 过滤函数
+
+      ```
+      @register.filter
+      def has_permission(request, name):
+          """
+          判断是否有权限
+          :param request:
+          :param name:
+          :return:
+          """
+          if name in request.session.get(settings.PERMISSION_SESSION_KEY):
+              return True
+      ```
+
+   2. 模板文件
+
+      ```python
+      {% if request|has_permission:"payment_add" %}
+        <a class="btn btn-success" href="/payment/add/">
+        <i class="fa fa-plus-square" aria-hidden="true"></i> 添加缴费记录
+        </a>
+      {% endif %}
+      ```
+
       
 
 ## 二. 增删改查组件

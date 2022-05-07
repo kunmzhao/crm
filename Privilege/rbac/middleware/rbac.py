@@ -25,8 +25,8 @@ class RbacMiddleware(MiddlewareMixin):
                 return None
 
         # 获取当前用户session中的权限
-        permission_list = request.session[settings.PERMISSION_SESSION_KEY]
-        if not permission_list:
+        permission_dict = request.session[settings.PERMISSION_SESSION_KEY]
+        if not permission_dict:
             return HttpResponse('为获取用户权限信息，请登录')
 
         # 判断用户当前请求是否在session中
@@ -35,7 +35,7 @@ class RbacMiddleware(MiddlewareMixin):
         url_record = [
             {'url': '#', 'title': '首页'}
         ]
-        for item in permission_list:
+        for item in permission_dict.values():
             # 匹配应该严格
             reg = "^%s$" % (item['url'],)
             # 用户拥有权限

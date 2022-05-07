@@ -2,6 +2,7 @@ import re
 from django.template import Library
 from django.conf import settings
 from collections import OrderedDict
+from django.conf import settings
 
 register = Library()
 
@@ -68,3 +69,16 @@ def multi_menu(request):
 @register.inclusion_tag('rbac/url_record.html')
 def url_record(request):
     return {'url_record': request.url_record}
+
+
+@register.filter
+def has_permission(request, name):
+    """
+    判断是否有权限
+    :param request:
+    :param name:
+    :return:
+    """
+    if name in request.session.get(settings.PERMISSION_SESSION_KEY):
+        return True
+
