@@ -708,7 +708,72 @@ def multi_menu(request):
 1. 在渲染到页面的时候，通过JS控制菜单的点击事件
 2. 构建数据结构的时候，将无序字典转化为有序字典，同时添加class字段到构建的数据结构中，更好的渲染页面
 
+#### 1.8.3 点击非菜单权限时，将对应的菜单权限选中或展开
 
+1. 数据库修改，添加一个pid字段,用于关联本表中可以成为二级菜单权限
+
+   ```
+   class Permission(models.Model):
+       """
+       权限表
+       """
+       title = models.CharField(max_length=32, verbose_name='标题')
+       url = models.CharField(max_length=128, verbose_name='含正则的URL')
+       is_menu = models.BooleanField(verbose_name='是否可以做菜单', default=False)
+       icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+       menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
+                                help_text='null表示不是菜单，否则代表二级菜单')
+       pid = models.ForeignKey(to='Permission', related_name='parents', verbose_name='关联的权限', help_text='该权限不是菜单，关联一个权限',
+                               null=True, on_delete=models.CASCADE)
+   ```
+
+2. 在初始化init_permission中将权限列表中中原先的url,添加一个pid
+
+   ```python
+   permission_list.append(
+     {
+       'id': item['permissions__id'],
+       'url': item['permissions__url'],
+       'pid': item['permissions__pid__id']
+     }
+   )
+   ```
+
+   
+
+3. 在中间键中，判断当前权限的id或者pid(可以称为菜单的选择id,否在为pid),封装在request,传递给inclusion_tag中
+
+   ```python
+   for item in permission_list:
+   	# 匹配应该严格
+   	reg = "^%s$" % (item['url'],)
+   	# 用户拥有权限
+   	if re.match(reg, current_url):
+   		flag = True
+   		request.current_selected_permission = item['pid'] or item['id']
+   		break
+   ```
+
+   
+
+4. 在inclusion_tag中通过3中传递的id或者pid判断选中的菜单权限
+
+   ```python
+   for key in key_list:
+     val = menu_dict[key]
+     val['class'] = 'hide'
+     for per in val['children']:
+       if per['id'] == request.current_selected_permission:
+         val['class'] = ''
+         per['class'] = 'active'
+         ordered_dict[key] = val
+   ```
+
+   
+
+知识点：
+
+1. 表中字段的自关联
 
 ## 二. 增删改查组件
 

@@ -22,6 +22,8 @@ class Permission(models.Model):
     icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
     menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
                              help_text='null表示不是菜单，否则代表二级菜单')
+    pid = models.ForeignKey(to='Permission', related_name='parents', verbose_name='关联的权限', help_text='该权限不是菜单，关联一个权限',
+                            null=True, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title

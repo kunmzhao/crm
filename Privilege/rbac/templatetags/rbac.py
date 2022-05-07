@@ -22,7 +22,6 @@ def multi_menu(request):
     创建二级菜单
     :return:
     """
-    current_url = request.path_info
     menu_dict = request.session.get(settings.MENU_SESSION_KEY)
     # 将无序的字典转换为有序的
     key_list = sorted(menu_dict)
@@ -32,8 +31,7 @@ def multi_menu(request):
         val = menu_dict[key]
         val['class'] = 'hide'
         for per in val['children']:
-            regex = '^%s$' %per['url']
-            if re.match(regex, request.path_info):
+            if per['id'] == request.current_selected_permission:
                 val['class'] = ''
                 per['class'] = 'active'
         ordered_dict[key] = val
@@ -63,4 +61,4 @@ def multi_menu(request):
         }
     }
     """
-    return {'ordered_dict': ordered_dict, 'current_url': current_url}
+    return {'ordered_dict': ordered_dict}
