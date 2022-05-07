@@ -538,6 +538,176 @@ def static_menu(request):
 </div>
 ```
 
+#### 1.8.2 二级菜单设计思路
+
+session中储存的数据结构需要变更，支持两次循环，渲染到页面
+
+设计思路：
+
+1. 改善数据库表，下面的数据结构
+2. 构建对应的数据结构，放在session中
+3. 从session中获取该数据结构，渲染在页面
+
+```python
+{
+    1: {
+        'title': '信息管理',
+        'icon': 'x1',
+        'children': [
+            {'title': '客户列表', 'url': '/customer/list/', 'icon': 'x2'},
+            {'title': '张丹列表', 'url': '/payment/list/', 'icon': 'x3'}
+        ]
+
+    },
+    2: {
+        'title': '用户信息',
+        'icon': 'x4',
+        'children': [
+            {'title': '个人资料', 'url': '/userInfo/list/', 'icon': 'x5'},
+        ]
+
+    }
+}
+```
+
+
+
+数据库表结构修改
+
+```python
+from django.db import models
+
+
+class Menu(models.Model):
+    """
+    一级菜单表
+    """
+    title = models.CharField(max_length=32, verbose_name='一级菜单名称')
+    icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class Permission(models.Model):
+    """
+    权限表
+    """
+    title = models.CharField(max_length=32, verbose_name='标题')
+    url = models.CharField(max_length=128, verbose_name='含正则的URL')
+    is_menu = models.BooleanField(verbose_name='是否可以做菜单', default=False)
+    icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+    menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
+                             help_text='null表示不是菜单，否则代表二级菜单')
+
+    def __str__(self):
+        return self.title
+
+
+class Role(models.Model):
+    """
+    角色表
+    """
+    title = models.CharField(max_length=32, verbose_name='角色名称')
+    permissions = models.ManyToManyField(to='Permission', verbose_name='拥有的所有权限', blank=True)
+
+    def __str__(self):
+        return self.title
+
+
+class User(models.Model):
+    """
+    用户表
+    """
+    name = models.CharField(max_length=32, verbose_name='用户名')
+    password = models.CharField(max_length=32, verbose_name='密码')
+    email = models.CharField(max_length=32, verbose_name='邮箱')
+    roles = models.ManyToManyField(to='Role', verbose_name='拥有的所有角色', blank=True)
+
+    def __str__(self):
+        return self.name
+
+```
+
+函数：
+
+```
+import re
+from django.template import Library
+from django.conf import settings
+from collections import OrderedDict
+
+register = Library()
+
+
+# @register.inclusion_tag('rbac/static_menu.html')
+# def static_menu(request):
+#     """
+#     创建一级菜单
+#     :return:
+#     """
+#     current_url = request.path_info
+#     menu_list = request.session.get(settings.MENU_SESSION_KEY)
+#     return {'menu_list': menu_list, 'current_url': current_url}
+
+@register.inclusion_tag('rbac/multi_menu.html')
+def multi_menu(request):
+    """
+    创建二级菜单
+    :return:
+    """
+    current_url = request.path_info
+    menu_dict = request.session.get(settings.MENU_SESSION_KEY)
+    # 将无序的字典转换为有序的
+    key_list = sorted(menu_dict)
+    ordered_dict = OrderedDict()
+
+    for key in key_list:
+        val = menu_dict[key]
+        val['class'] = 'hide'
+        for per in val['children']:
+            regex = '^%s$' %per['url']
+            if re.match(regex, request.path_info):
+                val['class'] = ''
+                per['class'] = 'active'
+        ordered_dict[key] = val
+    # 格式如下
+    """
+    {
+        1: {
+            'title': '信息管理',
+            'icon': 'fa fa-audio-description',
+            'children': [
+                {
+                    'title': '客户列表',
+                    'url': '/customer/list/', 'icon': 'fa fa-address-book-o'
+           					'class':'active'
+                }
+            ]
+        },
+        2: {
+            'title': '用户管理',
+            'icon': 'fa fa-car',
+            'class':'hide'
+            'children': [
+                {
+                    'title': '账单列表',
+                    'url': '/payment/list/',
+                    'icon': 'fa fa-id-card'
+                }
+            ]
+        }
+    }
+    """
+    return {'ordered_dict': ordered_dict, 'current_url': current_url}
+
+```
+
+知识点：
+
+1. 在渲染到页面的时候，通过JS控制菜单的点击事件
+2. 构建数据结构的时候，将无序字典转化为有序字典，同时添加class字段到构建的数据结构中，更好的渲染页面
+
 
 
 ## 二. 增删改查组件
