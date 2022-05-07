@@ -1,0 +1,27 @@
+{% extends 'layout.html' %}
+{% block content %}
+
+<h1>角色列表</h1>
+
+<div class="luffy-container">
+
+    <form action="" method="post" class="form-horizontal">
+        {% csrf_token %}
+        {% for filed in form %}
+        <div class="form-group">
+            <label class="col-sm-2 control-label">{{ filed.label }}</label>
+            <div class="col-sm-8">
+                {{ filed }}
+                <span style="color: red"> {{ filed.errors.0}}</span>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="form-group">
+            <div class="col-sm-offset-2 col-sm-8">
+                <input type="submit" value="保 存" class="btn btn-primary">
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

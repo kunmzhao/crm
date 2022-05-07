@@ -1,4 +1,4 @@
-## 一. 权限组件
+#### 一. 权限组件
 
 ### 1.1 权限组件介绍
 
@@ -889,7 +889,156 @@ def multi_menu(request):
       {% endif %}
       ```
 
-      
+小结：
+
+	1. 权限控制
+	1. 动态菜单
+	1. 导航条
+	1. 权限控制力度到按钮
+
+### 1.11权限分配
+
+之前我们是如何权限分配的呢？
+
+```
+在数据库表中直接添加数据
+```
+
+我们希望权限的分配是通过管理员动态友好的实现
+<img src="picture/image-20220507184209839.png" alt="image-20220507184209839" style="zoom:50%;" />
+
+#### 1.11.1权限分配任务拆分
+
+	1. 角色管理
+	1. 用户管理
+	1. 菜单和权限表的管理
+	1. 批量的权限操作
+	1. 权限的分配
+
+#### 1.11.2 角色管理
+
+对角色表的增删改查
+
+```
+<!--{% multi_menu request %}-->
+<!--{% url_record request %}-->
+
+```
+
+知识点：
+
+1. modelForm的使用
+2. 反向生成url
+
+视图
+
+```python
+from django.shortcuts import render, HttpResponse, redirect
+from rbac.models import Role
+from django.urls import reverse
+from rbac.forms.role import RoleModelForm
+
+
+def role_list(request):
+    """
+    角色列表
+    :param request:
+    :return:
+    """
+    role_queryset = Role.objects.all()
+    return render(request, 'rbac/role_list.html', {"role_queryset": role_queryset})
+
+
+def role_add(request):
+    """
+    添加角色
+    :param request:
+    :return:
+    """
+    if request.method == 'GET':
+        form = RoleModelForm()
+        return render(request, 'rbac/change.html', {'form': form})
+    form = RoleModelForm(data=request.POST)
+    if form.is_valid():
+        form.save()
+        return redirect(reverse('rbac:role_list'))
+    else:
+        return render(request, 'rbac/change.html', {'form': form})
+
+
+def role_edit(request, pk):
+    """
+    编辑角色
+    :param request:
+    :param pk:要修改的角色ID
+    :return:
+    """
+    role_obj = Role.objects.filter(id=pk).first()
+    if not role_obj:
+        return HttpResponse('角色不存在')
+    if request.method == 'GET':
+        form = RoleModelForm(instance=role_obj)
+        return render(request, "rbac/change.html", {'form': form})
+    form = RoleModelForm(data=request.POST, instance=role_obj)
+    if form.is_valid():
+        form.save()
+        return redirect(reverse("rbac:role_list"))
+    else:
+        return render(request, "rbac/change.html", {'form': form})
+
+
+def role_del(request, pk):
+    """
+    删除角色
+    :param request:
+    :param pk:
+    :return:
+    """
+    origin_url = reverse('rbac:role_list')
+    if request.method == "GET":
+        return render(request, 'rbac/role_del.html', {'cancel': origin_url})
+
+    Role.objects.filter(id=pk).delete()
+    return redirect(origin_url)
+
+```
+
+
+
+modelForm表单
+
+```python
+from django import forms
+from rbac.models import Role
+
+
+class RoleModelForm(forms.ModelForm):
+    class Meta:
+        model = Role
+        fields = ['title']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'})
+        }
+
+```
+
+Urls.py
+
+```
+from django.urls import path, include
+from django.conf.urls import url
+from .views import role
+
+urlpatterns = [
+    url('^role/list/$', role.role_list, name='role_list'),
+    url('^role/add/$', role.role_add, name='role_add'),
+    url('^role/edit/(?P<pk>\d+)/$', role.role_edit, name='role_edit'),
+    url('^role/del/(?P<pk>\d+)/$', role.role_del, name='role_del'),
+
+]
+```
+
+
 
 ## 二. 增删改查组件
 

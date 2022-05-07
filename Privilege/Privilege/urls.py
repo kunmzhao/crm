@@ -20,4 +20,6 @@ from django.conf.urls import url
 urlpatterns = [
     path('admin/', admin.site.urls),
     url(r'^', include('web.urls')),
+    # 第一个rbac为app名字
+    url(r'^rbac/', include(('rbac.urls', 'rbac'), namespace='rbac')),
 ]
