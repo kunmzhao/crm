@@ -1038,6 +1038,80 @@ urlpatterns = [
 ]
 ```
 
+#### 1.11.3 用户管理
+
+知识点：
+
+1. modelForm使用
+   1. 重写__init__方法，给所有字段添加属性
+   2. 自定义字段值
+   3. 错误信息中文化
+2. 方向生成url
+
+modelForm表单
+
+```
+from django import forms
+from rbac.models import User
+from django.core.exceptions import ValidationError
+
+
+class UserModelForm(forms.ModelForm):
+    confirm_password = forms.CharField(label='确认密码')
+
+    # 统一给字段添加样式
+    def __init__(self, *args, **kwargs):
+        super(UserModelForm, self).__init__(*args, **kwargs)
+        for name, filed in self.fields.items():
+            filed.widget.attrs['class'] = 'form-control'
+
+    class Meta:
+        model = User
+        fields = ['name', 'password', 'confirm_password', 'email']
+        widgets = {
+            'password': forms.PasswordInput(),
+            'confirm_password': forms.PasswordInput()
+        }
+
+    def clean_confirm_password(self):
+        """
+        检测两次输入密码是否一致
+        :return:
+        """
+        password = self.cleaned_data.get('password')
+        r_password = self.cleaned_data.get('confirm_password')
+        if password != r_password:
+            raise ValidationError('两次输入密码不一致')
+        return r_password
+
+
+class UserEditModelForm(forms.ModelForm):
+    # 统一给字段添加样式
+    def __init__(self, *args, **kwargs):
+        super(UserEditModelForm, self).__init__(*args, **kwargs)
+        for name, filed in self.fields.items():
+            filed.widget.attrs['class'] = 'form-control'
+
+    class Meta:
+        model = User
+        fields = ['name', 'email']
+
+
+class UserResetPasswordModelForm(forms.ModelForm):
+    confirm_password = forms.CharField(label='确认密码')
+
+    # 统一给字段添加样式
+    def __init__(self, *args, **kwargs):
+        super(UserResetPasswordModelForm, self).__init__(*args, **kwargs)
+        for name, filed in self.fields.items():
+            filed.widget.attrs['class'] = 'form-control'
+
+    class Meta:
+        model = User
+        fields = ['password', 'confirm_password']
+
+```
+
 
 
 ## 二. 增删改查组件
