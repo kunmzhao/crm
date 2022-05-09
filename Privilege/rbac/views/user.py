@@ -68,7 +68,6 @@ def user_del(request, pk):
 
 
 def user_password_reset(request, pk):
-    print('hello')
     user_obj = User.objects.filter(id=pk).first()
     if not user_obj:
         return HttpResponse('用户不存在')

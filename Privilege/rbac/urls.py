@@ -1,5 +1,5 @@
 from django.conf.urls import url
-from .views import role, user
+from .views import role, user, menu
 
 urlpatterns = [
     url('^role/list/$', role.role_list, name='role_list'),
@@ -12,5 +12,10 @@ urlpatterns = [
     url('^user/edit/(?P<pk>\d+)/$', user.user_edit, name='user_edit'),
     url('^user/del/(?P<pk>\d+)/$', user.user_del, name='user_del'),
     url('^user/password/reset/(?P<pk>\d+)/$', user.user_password_reset, name='user_password_reset'),
+
+    url('^menu/list/$', menu.menu_list, name='menu_list'),
+    url('^menu/add/$', menu.menu_add, name='menu_add'),
+    url('^menu/edit/(?P<pk>\d+)/$', menu.menu_edit, name='menu_edit'),
+    url('^menu/del/(?P<pk>\d+)/$', menu.menu_del, name='menu_del'),
 
 ]
