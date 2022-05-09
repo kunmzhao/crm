@@ -18,4 +18,8 @@ urlpatterns = [
     url('^menu/edit/(?P<pk>\d+)/$', menu.menu_edit, name='menu_edit'),
     url('^menu/del/(?P<pk>\d+)/$', menu.menu_del, name='menu_del'),
 
+    url('^second_menu/add/(?P<menu_id>\d+)$', menu.second_menu_add, name='second_menu_add'),
+    url('^second_menu/edit/(?P<pk>\d+)/$', menu.second_menu_edit, name='second_menu_edit'),
+    url('^second_menu/del/(?P<pk>\d+)/$', menu.second_menu_del, name='second_menu_del'),
+
 ]

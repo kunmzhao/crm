@@ -19,7 +19,6 @@ class Permission(models.Model):
     title = models.CharField(max_length=32, verbose_name='标题')
     url = models.CharField(max_length=128, verbose_name='含正则的URL')
     name = models.CharField(max_length=32, verbose_name='URL的别名', unique=True)
-    is_menu = models.BooleanField(verbose_name='是否可以做菜单', default=False)
     icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
     menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
                              help_text='null表示不是菜单，否则代表二级菜单')

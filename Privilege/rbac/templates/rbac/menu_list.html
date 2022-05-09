@@ -31,7 +31,7 @@ border-left: 3px solid #fdc00f;
                 </thead>
                 <tbody>
                 {% for filed in menu_queryset %}
-                <tr class="{% if menu_id == filed.id %}active{% endif %}">
+                <tr class="{% if menu_id == filed.id|safe %}active{% endif %}">
                     <td><a href="?mid={{ filed.id }}">{{ filed.title}}</a></td>
                     <td><i class="{{ filed.icon }}"></i></td>
                     <td>
@@ -41,6 +41,50 @@ border-left: 3px solid #fdc00f;
                         <a style="color: #d9534f;" href="{% memory_url request 'rbac:menu_del' pk=filed.id %}">
                             <i class="fa fa-trash-o"></i></a>
                     </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <!-- Default panel contents -->
+            <div class="panel-heading">
+                <i class="fa fa-envelope-square" aria-hidden="true"></i>二级菜单
+                <a href="{% memory_url request 'rbac:second_menu_add' menu_id=menu_id %}"
+                   class="right btn btn-success btn-xs"
+                   style="padding: 2px 8px; margin: -3px">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                    新建
+                </a>
+            </div>
+            <!-- Table -->
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>Name&URL</th>
+                    <th>选项</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for filed in second_menus %}
+                <tr class="{% if second_menu_id == filed.id|safe %}active{% endif %}">
+                    <td rowspan="2" style="text-align: center"><a href="?mid={{ menu_id }}&sid={{ filed.id }}">
+                        {{ filed.title}}</a></td>
+                    <td>{{ filed.name }}</td>
+                    <td>
+                        <a style="color: #333333;" href="{% memory_url request 'rbac:second_menu_edit' pk=filed.id %}">
+                            <i class="fa fa-edit" aria-hidden="true"></i></a>
+                        |
+                        <a style="color: #d9534f;" href="{% memory_url request 'rbac:second_menu_del' pk=filed.id %}">
+                            <i class="fa fa-trash-o"></i></a>
+                    </td>
+                </tr>
+                <tr class="{% if second_menu_id == filed.id|safe %}active{% endif %}">
+                    <td colspan="2" style="border-top: none">{{ filed.url }}</td>
                 </tr>
                 {% endfor %}
                 </tbody>

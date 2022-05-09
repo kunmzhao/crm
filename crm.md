@@ -1162,6 +1162,10 @@ class UserResetPasswordModelForm(forms.ModelForm):
       
 
 2. 二级菜单
+   <img src="picture/image-20220509205007360.png" alt="image-20220509205007360" style="zoom:50%;" />
+   知识点：
+
+   modelForm的使用
 
 3. 非菜单
 

@@ -1,5 +1,5 @@
 from django import forms
-from rbac.models import Menu
+from rbac.models import Menu, Permission
 from django.utils.safestring import mark_safe
 
 ICON_LIST = [
@@ -30,3 +30,14 @@ class MenuModelForm(forms.ModelForm):
         labels = {
             'title': '菜单名称'
         }
+
+
+class SecondMenuModelForm(forms.ModelForm):
+    class Meta:
+        model = Permission
+        fields = ['title', 'url', 'name', 'menu']
+
+    def __init__(self, *args, **kwargs):
+        super(SecondMenuModelForm, self).__init__(*args, **kwargs)
+        for name, filed in self.fields.items():
+            filed.widget.attrs['class'] = 'form-control'
