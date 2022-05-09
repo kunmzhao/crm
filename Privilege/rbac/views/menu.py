@@ -19,13 +19,24 @@ def menu_list(request):
         menu_id = None
     # 二级菜单
     second_menu_id = request.GET.get('sid')
-    second_menus = Permission.objects.filter(menu_id=menu_id)
-    print(menu_id, second_menu_id, second_menus)
+    is_exist = Permission.objects.filter(id=second_menu_id).exists()
+    if not is_exist:
+        second_menu_id = None
+    if menu_id:
+        second_menus = Permission.objects.filter(menu_id=menu_id)
+    else:
+        second_menus = []
+    # 权限
+    if second_menu_id:
+        permissions = Permission.objects.filter(pid=second_menu_id)
+    else:
+        permissions = []
     return render(request, 'rbac/menu_list.html', {
         "menu_queryset": menu_queryset,
         'menu_id': menu_id,
         "second_menus": second_menus,
         "second_menu_id": second_menu_id,
+        "permissions": permissions,
     })
 
 

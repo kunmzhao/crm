@@ -1168,6 +1168,7 @@ class UserResetPasswordModelForm(forms.ModelForm):
    modelForm的使用
 
 3. 非菜单
+   ![image-20220509214319701](picture/image-20220509214319701.png)
 
 ## 二. 增删改查组件
 
