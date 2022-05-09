@@ -28,7 +28,7 @@ def memory_url(request, name, *args, **kwargs):
     base_url = reverse(name, args=args, kwargs=kwargs)
     # 当前url中无参数
     if not request.GET:
-        return reverse(name)
+        return base_url
     query_dict = QueryDict(mutable=True)
     query_dict['_filter'] = request.GET.urlencode()
     return "%s?%s" % (base_url, query_dict.urlencode())
