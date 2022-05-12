@@ -26,4 +26,5 @@ urlpatterns = [
     url('^permmision/edit/(?P<pk>\d+)$', menu.permission_edit, name='permission_edit'),
     url('^permmision/del/(?P<pk>\d+)$', menu.permission_del, name='permission_del'),
 
+    url('^multi/permissions/add/$', menu.multi_permissions, name='multi_permissions')
 ]

@@ -125,8 +125,14 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # -----权限相关配置-----
 PERMISSION_SESSION_KEY = 'luffy_permission_url_list_key'
 MENU_SESSION_KEY = 'luffy_menu_url_list_key'
-# 配置白名单
+# 配置访问URL的白名单
 VALID_URL_LIST = [
     '/login/',
     '/admin/*'
+]
+# 配置URL查找的白名单
+AUTO_DISCOVER_EXCLUDE = [
+    '/admin/.*',
+    '/login/',
+    '/logout/',
 ]
