@@ -1573,6 +1573,186 @@ class UserResetPasswordModelForm(forms.ModelForm):
        return url_ordered_dict
    ```
 
+   3. 批量实现权限操作的思路
+      获取项目中的权限
+
+      获取数据库中的权限
+
+      情况一：项目有，数据库无--->实现批量添加 通过name进行set比对
+      情况二：数据库有，项目无--->实现批量删除
+      情况三：数据库和项目的name一致，但值不相同，---->实现批量更新
+
+   4. 批量操作权限页面展示
+      视图函数
+
+      ```python
+      def multi_permissions(request):
+          """
+          批量操作权限
+          :param request:
+          :return:
+          """
+          # 1. 获取项目中的所有URL
+          all_url_dict = get_all_url_dict()
+          router_name_set = set(all_url_dict.keys())
+      
+          # 2.获取数据库中的所有URL
+          permissions_queryset = Permission.objects.all().values('id', 'title', 'name', 'url', 'menu_id', 'pid_id')
+          permission_dict = OrderedDict()
+          for row in permissions_queryset:
+              permission_dict[row['name']] = row
+          permission_name_set = set(permission_dict.keys())
+      
+          # 防止数据库和路由中name一样但是url不一致
+          for name, value in permission_dict.items():
+              router_url_dict = all_url_dict.get(name)
+              if not router_url_dict:
+                  continue
+              if router_url_dict['url'] != all_url_dict.get('url'):
+                  value['url'] = '路由和数据库不一致！'
+      
+          # 3.1 增加到数据库的权限
+          generate_name_list = router_name_set - permission_name_set
+          generate_form_class = formset_factory(MultiAddPermissionForm, extra=0)
+          generate_formset = generate_form_class(
+              initial=[row_dict for name, row_dict in all_url_dict.items() if name in generate_name_list])
+      
+          # 3.2 从数据库中删除的权限
+          delete_name_list = permission_name_set - router_name_set
+          delete_row_list = [row_dict for name, row_dict in permission_dict.items() if name in delete_name_list]
+      
+          # 3.3 更新到到数据库的权限
+          update_name_list = permission_name_set & router_name_set
+          update_form_class = formset_factory(MultiEditPermissionForm, extra=0)
+          update_formset = update_form_class(
+              initial=[row_dict for name, row_dict in permission_dict.items() if name in update_name_list])
+      
+          return render(request, 'rbac/multi_permissions.html', {
+              'generate_formset': generate_formset,
+              'delete_row_list': delete_row_list,
+              'update_formset': update_formset,
+          })
+      
+      ```
+
+      模板文件
+
+      ```html
+      {% extends 'layout.html' %}
+      
+      {% block content %}
+      <div class="luffy-container">
+          <div class="panel panel-default">
+              <div class="panel-heading">
+                  <i class="fa fa-th-list" aria-hidden="true"></i>待新建的权限列表
+                  <a href=""
+                     class="right btn btn-primary btn-xs"
+                     style="padding: 2px 8px; margin: -3px">
+                      <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                      新建
+                  </a>
+              </div>
+              <!-- Table -->
+              <table class="table">
+                  <thead>
+                  <tr>
+                      <th>序号</th>
+                      <th>名称</th>
+                      <th>URL</th>
+                      <th>别名</th>
+                      <th>菜单</th>
+                      <th>父权限</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {% for form in generate_formset %}
+                  <tr>
+                      <td>{{ forloop.counter }}</td>
+                      {% for filed in form %}
+                      <td>{{ filed }} <span style="color: red">{{ filed.errors.0 }}</span></td>
+                      {% endfor %}
+                  </tr>
+      
+                  {% endfor %}
+      
+                  </tbody>
+              </table>
+          </div>
+          <div class="panel panel-default">
+              <div class="panel-heading">
+                  <i class="fa fa-th-list" aria-hidden="true"></i>待删除的权限列表
+              </div>
+              <!-- Table -->
+              <table class="table">
+                  <thead>
+                  <tr>
+                      <th>序号</th>
+                      <th>名称</th>
+                      <th>URL</th>
+                      <th>别名</th>
+                      <th>删除</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {% for row in delete_row_list %}
+                  <tr>
+                      <td>{{ forloop.counter }}</td>
+                      <td>{{ row.title }}</td>
+                      <td>{{ row.url }}</td>
+                      <td>{{ row.name }}</td>
+                      <td><a href="#" style="color: #d9534f"><i class="fa fa-trash-o"></i></a></td>
+                  </tr>
+      
+                  {% endfor %}
+      
+                  </tbody>
+              </table>
+          </div>
+          <div class="panel panel-default">
+              <div class="panel-heading">
+                  <i class="fa fa-th-list" aria-hidden="true"></i>待更新的权限列表
+                  <a href=""
+                     class="right btn btn-primary btn-xs"
+                     style="padding: 2px 8px; margin: -3px">
+                      <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                      新建
+                  </a>
+              </div>
+              <!-- Table -->
+              <table class="table">
+                  <thead>
+                  <tr>
+                      <th>序号</th>
+                      <th>名称</th>
+                      <th>URL</th>
+                      <th>别名</th>
+                      <th>菜单</th>
+                      <th>父权限</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                  {% for form in update_formset %}
+                  <tr>
+                      <td>{{ forloop.counter }}</td>
+                      {% for filed in form %}
+                      {% if forloop.first %}
+                      {{ filed }}
+                      {% else %}
+                      <td>{{ filed }} <span style="color: red">{{ filed.errors.0 }}</span></td>
+                      {% endif %}
+                      {% endfor %}
+                  </tr>
+                  {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+      {% endblock %}
+      ```
+
+      ![image-20220512185318606](picture/image-20220512185318606.png)
+      ![image-20220512185337895](picture/image-20220512185337895.png)
+
 ## 二. 增删改查组件
 
 ## 三. CRM业务组件

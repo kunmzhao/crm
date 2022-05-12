@@ -1,8 +1,11 @@
 from django.shortcuts import render, HttpResponse, redirect
 from rbac.models import Menu, Permission
-from rbac.forms.menu import MenuModelForm, SecondMenuModelForm, PermissionModelForm
+from rbac.forms.menu import MenuModelForm, SecondMenuModelForm, PermissionModelForm, \
+    MultiAddPermissionForm, MultiEditPermissionForm
 from rbac.service.urls import memory_reverse
 from rbac.service.routers import get_all_url_dict
+from collections import OrderedDict
+from django.forms import formset_factory
 
 
 def menu_list(request):
@@ -213,7 +216,43 @@ def multi_permissions(request):
     :param request:
     :return:
     """
+    # 1. 获取项目中的所有URL
     all_url_dict = get_all_url_dict()
-    for item in all_url_dict:
-        print(item)
-    return HttpResponse('OK')
+    router_name_set = set(all_url_dict.keys())
+
+    # 2.获取数据库中的所有URL
+    permissions_queryset = Permission.objects.all().values('id', 'title', 'name', 'url', 'menu_id', 'pid_id')
+    permission_dict = OrderedDict()
+    for row in permissions_queryset:
+        permission_dict[row['name']] = row
+    permission_name_set = set(permission_dict.keys())
+
+    # 防止数据库和路由中name一样但是url不一致
+    for name, value in permission_dict.items():
+        router_url_dict = all_url_dict.get(name)
+        if not router_url_dict:
+            continue
+        if router_url_dict['url'] != all_url_dict.get('url'):
+            value['url'] = '路由和数据库不一致！'
+
+    # 3.1 增加到数据库的权限
+    generate_name_list = router_name_set - permission_name_set
+    generate_form_class = formset_factory(MultiAddPermissionForm, extra=0)
+    generate_formset = generate_form_class(
+        initial=[row_dict for name, row_dict in all_url_dict.items() if name in generate_name_list])
+
+    # 3.2 从数据库中删除的权限
+    delete_name_list = permission_name_set - router_name_set
+    delete_row_list = [row_dict for name, row_dict in permission_dict.items() if name in delete_name_list]
+
+    # 3.3 更新到到数据库的权限
+    update_name_list = permission_name_set & router_name_set
+    update_form_class = formset_factory(MultiEditPermissionForm, extra=0)
+    update_formset = update_form_class(
+        initial=[row_dict for name, row_dict in permission_dict.items() if name in update_name_list])
+
+    return render(request, 'rbac/multi_permissions.html', {
+        'generate_formset': generate_formset,
+        'delete_row_list': delete_row_list,
+        'update_formset': update_formset,
+    })
