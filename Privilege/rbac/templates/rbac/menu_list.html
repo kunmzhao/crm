@@ -54,12 +54,12 @@ border-left: 3px solid #fdc00f;
             <div class="panel-heading">
                 <i class="fa fa-envelope-square" aria-hidden="true"></i>二级菜单
                 {% if menu_id %}
-                    <a href="{% memory_url request 'rbac:second_menu_add' menu_id=menu_id %}"
-                       class="right btn btn-success btn-xs"
-                       style="padding: 2px 8px; margin: -3px">
-                        <i class="fa fa-plus-circle" aria-hidden="true"></i>
-                        新建
-                    </a>
+                <a href="{% memory_url request 'rbac:second_menu_add' menu_id=menu_id %}"
+                   class="right btn btn-success btn-xs"
+                   style="padding: 2px 8px; margin: -3px">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                    新建
+                </a>
                 {% endif %}
             </div>
             <!-- Table -->
@@ -100,7 +100,7 @@ border-left: 3px solid #fdc00f;
             <div class="panel-heading">
                 <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>权限
                 {% if second_menu_id %}
-                <a href=""
+                <a href="{% memory_url request 'rbac:permission_add' second_menu_id=second_menu_id %}"
                    class="right btn btn-success btn-xs"
                    style="padding: 2px 8px; margin: -3px">
                     <i class="fa fa-plus-circle" aria-hidden="true"></i>
@@ -120,14 +120,15 @@ border-left: 3px solid #fdc00f;
                 <tbody>
                 {% for filed in permissions %}
                 <tr>
-                    <td rowspan="2" style="text-align: center"><a href="?mid={{ menu_id }}&sid={{ filed.id }}">
-                        {{ filed.title}}</a></td>
+                    <td rowspan="2" style="text-align: center">
+                        {{ filed.title}}
+                    </td>
                     <td>{{ filed.name }}</td>
                     <td>
-                        <a style="color: #333333;" href="">
+                        <a style="color: #333333;" href="{% memory_url request 'rbac:permission_edit' pk=filed.id %}">
                             <i class="fa fa-edit" aria-hidden="true"></i></a>
                         |
-                        <a style="color: #d9534f;" href="">
+                        <a style="color: #d9534f;" href="{% memory_url request 'rbac:permission_del' pk=filed.id %}">
                             <i class="fa fa-trash-o"></i></a>
                     </td>
                 </tr>

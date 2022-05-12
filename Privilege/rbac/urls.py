@@ -22,4 +22,8 @@ urlpatterns = [
     url('^second_menu/edit/(?P<pk>\d+)/$', menu.second_menu_edit, name='second_menu_edit'),
     url('^second_menu/del/(?P<pk>\d+)/$', menu.second_menu_del, name='second_menu_del'),
 
+    url('^permmision/add/(?P<second_menu_id>\d+)$', menu.permission_add, name='permission_add'),
+    url('^permmision/edit/(?P<pk>\d+)$', menu.permission_edit, name='permission_edit'),
+    url('^permmision/del/(?P<pk>\d+)$', menu.permission_del, name='permission_del'),
+
 ]

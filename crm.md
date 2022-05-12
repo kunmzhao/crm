@@ -1119,9 +1119,11 @@ class UserResetPasswordModelForm(forms.ModelForm):
 
    知识点：
 
-   1. modelForm的使用
+   1. modelForm的使用	
 
    2. 新建，删除和修改保存后，原先对应的一级菜单仍被选中
+
+   3. 模版中整数形转化为字符串|safe
 
       ```python
       from django.urls import reverse
@@ -1167,8 +1169,335 @@ class UserResetPasswordModelForm(forms.ModelForm):
 
    modelForm的使用
 
+   ​	定制radio
+
+   ​	定制显示默认值：initial
+
+   ​	save之前对instance进行修改
+
 3. 非菜单
    ![image-20220509214319701](picture/image-20220509214319701.png)
+
+#### 1.11.4 权限的批量操作
+
+知识点：
+
+1. formset
+   f orm或者model Form实现对单个表单的验证
+   formset是实现对多个表单的验证
+
+   formset批量添加
+
+   上面的modelForm和Form只能对一张表进行操作，formset则可以批量的对表进行操作
+   模型类
+
+   ```python
+   from django.db import models
+   
+   
+   # Create your models here.
+   class Menu(models.Model):
+       """
+       一级菜单表
+       """
+       title = models.CharField(max_length=32, verbose_name='一级菜单名称')
+       icon = models.CharField(max_length=64, verbose_name='图标')
+   
+       def __str__(self):
+           return self.title
+   
+   
+   class Permission(models.Model):
+       """
+       权限表
+       """
+       title = models.CharField(max_length=32, verbose_name='标题')
+       url = models.CharField(max_length=128, verbose_name='含正则的URL')
+       name = models.CharField(max_length=32, verbose_name='URL的别名', unique=True)
+       icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+       menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
+                                help_text='null表示不是菜单，否则代表二级菜单')
+       pid = models.ForeignKey(to='Permission', related_name='parents', verbose_name='关联的权限', help_text='该权限不是菜单，关联一个权限',
+                               null=True, on_delete=models.CASCADE)
+   
+       def __str__(self):
+           return self.title
+   
+   ```
+
+   视图函数
+
+   ```python
+   from django.shortcuts import render, HttpResponse
+   from django import forms
+   from app01.models import Menu, Permission
+   from django.forms import formset_factory
+   
+   # 创建Form类
+   class MultiPermissionForm(forms.Form):
+       title = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+       url = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+       name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+   
+       menu_id = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), required=False,
+                                   choices=[(None, "------")])
+       pid_id = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), required=False,
+                                  choices=[(None, '----')])
+   
+       def __init__(self, *args, **kwargs):
+           super(MultiPermissionForm, self).__init__(*args, **kwargs)
+           self.fields['menu_id'].choices += Menu.objects.values_list('id', 'title')
+           self.fields['pid_id'].choices += Permission.objects.filter(pid__isnull=True).exclude(
+               menu__isnull=True).values_list('menu_id', 'title')
+   
+   
+   # Create your views here.
+   def multi_add(request):
+       """
+       批量添加
+       :param request:
+       :return:
+       """
+       form_class = formset_factory(MultiPermissionForm, extra=3)
+       if request.method == "GET":
+           formset = form_class()
+           return render(request, 'multi_add.html', {'formset': formset})
+       formset = form_class(data=request.POST)
+       if formset.is_valid():
+           flag = True
+           post_row_list = formset.cleaned_data
+           for i in range(0, formset.total_form_count()):
+               row = post_row_list[i]
+               if not row:
+                   continue
+               # 将数据添加到数据库
+               try:
+                   obj = Permission(**row)
+                   # 检查当前对象在数据库是否存在唯一异常，如果有则抛出异常
+                   obj.validate_unique()
+                   obj.save()
+               except Exception as e:
+                   # 添加错误信息
+                   formset.errors[i].update(e)
+                   flag = False
+           if flag:
+               return HttpResponse('添加成功')
+           else:
+               return render(request, "multi_add.html", {'formset': formset})
+       return render(request, "multi_add.html", {'formset': formset})
+   
+   ```
+
+   模板文件
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="UTF-8">
+       <title>Title</title>
+       <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+             integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+   </head>
+   <body>
+   <div class="row">
+       <div class="col-md-6 col-md-offset-3">
+           <form action="" method="post">
+               {% csrf_token %}
+               {{ formset.management_form }}
+               <table class="table table-bordered">
+                   <thead>
+                   <th>标题</th>
+                   <th>URL</th>
+                   <th>Name</th>
+                   <th>菜单</th>
+                   <th>权限</th>
+                   </thead>
+                   <tbody>
+                   {% for form in formset %}
+                       <tr>
+                           {% for filed in form %}
+                               <td>{{ filed }}<span style="color: red">{{ filed.errors.0 }}</span></td>
+                           {% endfor %}
+                       </tr>
+                   {% endfor %}
+                   </tbody>
+               </table>
+               <input type="submit" class="btn btn-primary">
+           </form>
+       </div>
+   </div>
+   </body>
+   </html>
+   ```
+
+   <img src="picture/image-20220512100127143.png" alt="image-20220512100127143" style="zoom:50%;" />
+   
+   
+
+    formset批量修改
+
+   模型类
+
+   ```python
+   from django.db import models
+   
+   
+   # Create your models here.
+   class Menu(models.Model):
+       """
+       一级菜单表
+       """
+       title = models.CharField(max_length=32, verbose_name='一级菜单名称')
+       icon = models.CharField(max_length=64, verbose_name='图标')
+   
+       def __str__(self):
+           return self.title
+   
+   
+   class Permission(models.Model):
+       """
+       权限表
+       """
+       title = models.CharField(max_length=32, verbose_name='标题')
+       url = models.CharField(max_length=128, verbose_name='含正则的URL')
+       name = models.CharField(max_length=32, verbose_name='URL的别名', unique=True)
+       icon = models.CharField(max_length=64, verbose_name='图标', null=True, blank=True)
+       menu = models.ForeignKey(to='Menu', verbose_name='所属的一级菜单', on_delete=models.CASCADE, null=True,
+                                help_text='null表示不是菜单，否则代表二级菜单')
+       pid = models.ForeignKey(to='Permission', related_name='parents', verbose_name='关联的权限', help_text='该权限不是菜单，关联一个权限',
+                               null=True, on_delete=models.CASCADE)
+   
+       def __str__(self):
+           return self.title
+   
+   ```
+
+   
+
+   视图函数
+
+   ```python
+   from django.shortcuts import render, HttpResponse
+   from django import forms
+   from app01.models import Menu, Permission
+   from django.forms import formset_factory
+   
+   class MultiEditPermissionForm(forms.Form):
+       id = forms.IntegerField(widget=forms.HiddenInput())
+       title = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+       url = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+       name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+   
+       menu_id = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), required=False,
+                                   choices=[(None, "------")])
+       pid_id = forms.ChoiceField(widget=forms.Select(attrs={'class': 'form-control'}), required=False,
+                                  choices=[(None, '----')])
+   
+       def __init__(self, *args, **kwargs):
+           super(MultiEditPermissionForm, self).__init__(*args, **kwargs)
+           self.fields['menu_id'].choices += Menu.objects.values_list('id', 'title')
+           self.fields['pid_id'].choices += Permission.objects.filter(pid__isnull=True).exclude(
+               menu__isnull=True).values_list('menu_id', 'title')
+   
+   
+   # Create your views here.
+   def multi_edit(request):
+       """
+       批量修改
+       :param request:
+       :return:
+       """
+       form_class = formset_factory(MultiEditPermissionForm, extra=0)
+       if request.method == "GET":
+           print(Permission.objects.all().values('pk', 'title', 'url', 'name', 'menu_id', 'pid_id'))
+           # 将数据库的权限显示在页面
+           formset = form_class(initial=Permission.objects.all().values('id', 'title', 'url', 'name', 'menu_id', 'pid_id'))
+           return render(request, 'multi_edit.html', {'formset': formset})
+       formset = form_class(request.POST)
+       if formset.is_valid():
+           flag = True
+           post_data_list = formset.cleaned_data
+           for i in range(0, formset.total_form_count()):
+               row = post_data_list[i]
+               obj_id = row.pop('id')
+               try:
+                   obj = Permission.objects.filter(id=obj_id).first()
+                   for k, v in row.items():
+                       setattr(obj, k, v)
+                   obj.validate_unique()
+                   obj.save()
+               except Exception as e:
+                   formset[i].errors.update(e)
+                   flag = False
+           if flag:
+               return HttpResponse('添加成功')
+       return render(request, 'multi_edit.html', {'formset': formset})
+   
+   ```
+
+   
+
+   模板文件
+
+   ```html
+   <!DOCTYPE html>
+   <html lang="en">
+   <head>
+       <meta charset="UTF-8">
+       <title>Title</title>
+       <!-- 最新版本的 Bootstrap 核心 CSS 文件 -->
+       <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+             integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+   </head>
+   <body>
+   <div class="row">
+       <div class="col-md-6 col-md-offset-3">
+           <form action="" method="post">
+               {% csrf_token %}
+               {{ formset.management_form }}
+               <table class="table table-bordered">
+                   <thead>
+                   <th>标题</th>
+                   <th>URL</th>
+                   <th>Name</th>
+                   <th>菜单</th>
+                   <th>权限</th>
+                   </thead>
+                   <tbody>
+                   {% for form in formset %}
+                       <tr>
+                           {% for filed in form %}
+                               {% if forloop.first %}
+                                   {{ filed }}
+                               {% else %}
+                                   <td>{{ filed }}<span style="color: red">{{ filed.errors.0 }}</span></td>
+                               {% endif %}
+   
+                           {% endfor %}
+                       </tr>
+                   {% endfor %}
+   
+                   </tbody>
+               </table>
+               <input type="submit" class="btn btn-primary">
+           </form>
+   
+       </div>
+   </div>
+   
+   
+   </body>
+   </html>
+   ```
+
+   <img src="picture/image-20220512113223914.png" alt="image-20220512113223914" style="zoom:50%;" />
+
+   ​	
+
+2. 自动发现项目中的URL
+   
 
 ## 二. 增删改查组件
 

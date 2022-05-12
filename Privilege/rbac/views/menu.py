@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect
 from rbac.models import Menu, Permission
-from rbac.forms.menu import MenuModelForm, SecondMenuModelForm
+from rbac.forms.menu import MenuModelForm, SecondMenuModelForm, PermissionModelForm
 from django.urls import reverse
 from rbac.service.urls import memory_reverse
 
@@ -142,6 +142,65 @@ def second_menu_del(request, pk):
     origin_url = memory_reverse(request, 'rbac:menu_list')
     if not second_menu_obj:
         return HttpResponse('菜单不存在')
+    if request.method == 'GET':
+        return render(request, 'rbac/menu_del.html', {'cancel': origin_url})
+    Permission.objects.filter(id=pk).delete()
+    return redirect(origin_url)
+
+
+def permission_add(request, second_menu_id):
+    """
+    添加权限
+    :param request:
+    :param second_menu_id:
+    :return:
+    """
+    if request.method == 'GET':
+        form = PermissionModelForm()
+        return render(request, 'rbac/change.html', {'form': form})
+    form = PermissionModelForm(data=request.POST)
+    if form.is_valid():
+        second_menu_obj = Permission.objects.filter(id=second_menu_id).first()
+        if not second_menu_obj:
+            return HttpResponse('二级菜单不存在')
+        # 添加权限表中的pid
+        form.instance.pid = second_menu_obj
+        form.save()
+        return redirect(memory_reverse(request, 'rbac:menu_list'))
+    return render(request, 'rbac/chang.html', {'form': form})
+
+
+def permission_edit(request, pk):
+    """
+    修改权限
+    :param request:
+    :param second_menu_id:
+    :return:
+    """
+    permission_obj = Permission.objects.filter(id=pk).first()
+    if not permission_obj:
+        return HttpResponse("权限不存在")
+    if request.method == 'GET':
+        form = PermissionModelForm(instance=permission_obj)
+        return render(request, 'rbac/change.html', {'form': form})
+    form = PermissionModelForm(data=request.POST, instance=permission_obj)
+    if form.is_valid():
+        form.save()
+        return redirect(memory_reverse(request, 'rbac:menu_list'))
+    return render(request, 'rbac/chang.html', {'form': form})
+
+
+def permission_del(request, pk):
+    """
+    删除权限
+    :param request:
+    :param second_menu_id:
+    :return:
+    """
+    permission_obj = Permission.objects.filter(id=pk).first()
+    origin_url = memory_reverse(request, 'rbac:menu_list')
+    if not permission_obj:
+        return HttpResponse('权限不存在')
     if request.method == 'GET':
         return render(request, 'rbac/menu_del.html', {'cancel': origin_url})
     Permission.objects.filter(id=pk).delete()
