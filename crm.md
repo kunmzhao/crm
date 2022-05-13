@@ -1757,7 +1757,11 @@ class UserResetPasswordModelForm(forms.ModelForm):
 
 1.11.5权限的分配
 
+实现思路：
 
+1. 展示用户，角色，权限信息
+2. 选择用户和角色时，显示默认选中的权限
+3. 角色和权限的分配
 
 ## 二. 增删改查组件
 
