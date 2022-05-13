@@ -99,14 +99,21 @@ border-left: 3px solid #fdc00f;
             <!-- Default panel contents -->
             <div class="panel-heading">
                 <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>权限
-                {% if second_menu_id %}
-                <a href="{% memory_url request 'rbac:permission_add' second_menu_id=second_menu_id %}"
-                   class="right btn btn-success btn-xs"
-                   style="padding: 2px 8px; margin: -3px">
-                    <i class="fa fa-plus-circle" aria-hidden="true"></i>
-                    新建
-                </a>
-                {% endif %}
+                <div class="brn-group right">
+                    {% if second_menu_id %}
+                    <a href="{% memory_url request 'rbac:permission_add' second_menu_id=second_menu_id %}"
+                       class="right btn btn-success btn-xs"
+                       style="padding: 2px 8px; margin: 0">
+                        <i class="fa fa-plus-circle" aria-hidden="true"></i>
+                        新建
+                    </a>
+                    <a href=" {% memory_url request 'rbac:multi_permissions' %}" class="btn btn-xs btn-primary"
+                       style="padding: 2px 8px; margin: 0">
+                        <i class="fa fa-mail-forward" aria-hidden="true"></i>
+                        批量操作
+                    </a>
+                    {% endif %}
+                </div>
             </div>
             <!-- Table -->
             <table class="table">

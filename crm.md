@@ -1753,6 +1753,12 @@ class UserResetPasswordModelForm(forms.ModelForm):
       ![image-20220512185318606](picture/image-20220512185318606.png)
       ![image-20220512185337895](picture/image-20220512185337895.png)
 
+
+
+1.11.5权限的分配
+
+
+
 ## 二. 增删改查组件
 
 ## 三. CRM业务组件

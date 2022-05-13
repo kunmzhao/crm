@@ -65,7 +65,7 @@ class MultiAddPermissionForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(MultiAddPermissionForm, self).__init__(*args, **kwargs)
-        self.fields['menu_id'].choices += Menu.objects.values('id', 'title')
+        self.fields['menu_id'].choices += Menu.objects.values_list('id', 'title')
         self.fields['pid_id'].choices += Permission.objects.filter(pid__isnull=True).exclude(
             menu__isnull=True).values_list('id', 'title')
 
@@ -82,6 +82,6 @@ class MultiEditPermissionForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(MultiEditPermissionForm, self).__init__(*args, **kwargs)
-        self.fields['menu_id'].choices += Menu.objects.values('id', 'title')
+        self.fields['menu_id'].choices += Menu.objects.values_list('id', 'title')
         self.fields['pid_id'].choices += Permission.objects.filter(pid__isnull=True).exclude(
             menu__isnull=True).values_list('id', 'title')
