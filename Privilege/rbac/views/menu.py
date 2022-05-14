@@ -326,7 +326,20 @@ def distribute_permissions(request):
     :return:
     """
     uid = request.GET.get('uid')
+    rid = request.GET.get('rid')
     user_obj = User.objects.filter(id=uid).first()
+    role_obj = Role.objects.filter(id=rid).first()
+
+    if request.method == 'POST' and request.POST.get('type') == 'role':
+        role_id_list = request.POST.getlist('roles')
+        if not user_obj:
+            return HttpResponse('请选择用户,再分配角色')
+        user_obj.roles.set(role_id_list)
+    if request.method == "POST" and request.POST.get('type') == 'permission':
+        permission_id_list = request.POST.getlist('permissions')
+        if not role_obj:
+            return HttpResponse('请选择角色，再分配权限')
+        role_obj.permissions.set(permission_id_list)
     if not user_obj:
         uid = None
 
@@ -341,15 +354,16 @@ def distribute_permissions(request):
     user_has_roles_dict = {item.id: item for item in user_has_roles}
     user_has_permissions_dict = {item['permissions__id']: None for item in user_has_permissions}
 
-    rid = request.GET.get('rid')
-    role_obj = Role.objects.filter(id=rid).first()
+    flag = False
     if not role_obj:
         rid = None
         role_has_permissions = []
     # 选中角色的时候，权限优先显示对应角色的权限
     else:
         role_has_permissions = role_obj.permissions.all()
+        flag = True
     role_has_permissions_dict = {item.id: None for item in role_has_permissions}
+
 
     # 获取所有用户
     all_user_list = User.objects.all()
@@ -385,6 +399,6 @@ def distribute_permissions(request):
         'all_menu_list': all_menu_list,
         'uid': uid,
         'user_has_roles_dict': user_has_roles_dict,
-        'user_has_permissions_dict': role_has_permissions_dict or user_has_permissions_dict,
+        'user_has_permissions_dict': role_has_permissions_dict if flag else user_has_permissions_dict,
         'rid': rid
     })
