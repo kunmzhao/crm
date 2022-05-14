@@ -27,5 +27,8 @@ urlpatterns = [
     url('^permmision/del/(?P<pk>\d+)$', menu.permission_del, name='permission_del'),
 
     url('^multi/permissions/add/$', menu.multi_permissions, name='multi_permissions'),
-    url('^multi/permissions/del/(?P<pk>\d+)$', menu.multi_permissions_del, name='multi_permissions_del')
+    url('^multi/permissions/del/(?P<pk>\d+)$', menu.multi_permissions_del, name='multi_permissions_del'),
+
+    url('^distribute/permissions/$', menu.distribute_permissions, name='distribute_permissions'),
+
 ]

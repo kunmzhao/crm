@@ -1,5 +1,5 @@
 from django.shortcuts import render, HttpResponse, redirect
-from rbac.models import Menu, Permission
+from rbac.models import Menu, Permission, User, Role
 from rbac.forms.menu import MenuModelForm, SecondMenuModelForm, PermissionModelForm, \
     MultiAddPermissionForm, MultiEditPermissionForm
 from rbac.service.urls import memory_reverse
@@ -317,3 +317,45 @@ def multi_permissions_del(request, pk):
         return render(request, 'rbac/menu_del.html', {'cancel': url})
     Permission.objects.filter(id=pk).delete()
     return redirect(url)
+
+
+def distribute_permissions(request):
+    """
+    权限的分配
+    :param request:
+    :return:
+    """
+    # 获取所有用户
+    all_user_list = User.objects.all()
+
+    # 获取所有的角色
+    all_role_list = Role.objects.all()
+
+    # 获取所有的一级菜单
+    all_menu_list = Menu.objects.all().values('id', 'title')
+    all_menu_dict = {}
+    for item in all_menu_list:
+        item['children'] = []
+        all_menu_dict[item['id']] = item
+
+    # 获取所有的二级菜单
+    all_second_menu_list = Permission.objects.filter(menu__isnull=False).values('id', 'title', 'menu_id')
+    all_second_menu_dict = {}
+    for item in all_second_menu_list:
+        item['children'] = []
+        all_second_menu_dict[item['id']] = item
+        all_menu_dict[item['menu_id']]['children'].append(item)
+
+    # 获取所有的三级菜单
+    all_permissions_list = Permission.objects.filter(menu__isnull=True).values('id', 'title', 'pid_id')
+    for item in all_permissions_list:
+        pid = item['pid_id']
+        if not pid:
+            continue
+        all_second_menu_dict[pid]['children'].append(item)
+    print(all_menu_list)
+    return render(request, 'rbac/distibute_permissions.html', {
+        'user_list': all_user_list,
+        'role_list': all_role_list,
+        'all_menu_list': all_menu_list
+    })
