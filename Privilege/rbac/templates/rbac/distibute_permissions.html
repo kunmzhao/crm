@@ -135,12 +135,17 @@ margin-right: 8px;
                 </thead>
                 <tbody>
                 {% for role in role_list %}
-                <tr>
+                <tr class='{% if role.id|safe == rid %}active{% endif %}'>
                     <td>
-                        {{ role.title }}
+                        {% if uid %}
+                        <a href="?uid={{ uid }}&rid={{ role.id }}">{{ role.title }}</a>
+                        {% else %}
+                        <a href="?rid={{ role.id }}">{{ role.title }}</a>
+                        {% endif %}
                     </td>
                     <td>
-                        <input type="checkbox" name="roles" value="{{ role.id }}" {% if role.id in user_has_roles_dict %}checked{% endif %}>
+                        <input type="checkbox" name="roles"
+                               value="{{ role.id }}" {% if role.id in user_has_roles_dict %}checked{% endif %}>
                     </td>
                 </tr>
                 {% endfor %}
@@ -153,7 +158,12 @@ margin-right: 8px;
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>权限分配
-
+                {% if rid %}
+                <a href="" class="btn btn-success right btn-xs" style="padding: 2px 8px;margin:-3px">
+                    <i class="fa fa-save" aria-hidden="true"></i>
+                    保存
+                </a>
+                {% endif %}
             </div>
             <div class="panel-body">
                 提示：点击角色后才能为其分配权限

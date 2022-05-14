@@ -2012,9 +2012,313 @@ class UserResetPasswordModelForm(forms.ModelForm):
    ```
 
    <img src="picture/image-20220514104408229.png" alt="image-20220514104408229" style="zoom:50%;" />
-   
 
 2. 选择用户和角色时，显示默认选中的权限
+
+   视图函数
+
+   ```python
+   def distribute_permissions(request):
+       """
+       权限的分配
+       :param request:
+       :return:
+       """
+       uid = request.GET.get('uid')
+       user_obj = User.objects.filter(id=uid).first()
+       if not user_obj:
+           uid = None
+   
+       if uid:
+           # 获取当前用户所拥有的所有角色
+           user_has_roles = user_obj.roles.all()
+           # 获取当前用户所拥有的权限
+           user_has_permissions = user_obj.roles.filter(permissions__id__isnull=False).values('permissions__id').distinct()
+       else:
+           user_has_roles = []
+           user_has_permissions = []
+       user_has_roles_dict = {item.id: item for item in user_has_roles}
+       user_has_permissions_dict = {item['permissions__id']: None for item in user_has_permissions}
+   
+       rid = request.GET.get('rid')
+       role_obj = Role.objects.filter(id=rid).first()
+       if not role_obj:
+           rid = None
+           role_has_permissions = []
+           # 选中角色的时候，权限优先显示对应角色的权限
+       else:
+           role_has_permissions = role_obj.permissions.all()
+       role_has_permissions_dict = {item.id: None for item in role_has_permissions}
+   
+       # 获取所有用户
+       all_user_list = User.objects.all()
+   
+       # 获取所有的角色
+       all_role_list = Role.objects.all()
+   
+       # 获取所有的一级菜单
+       all_menu_list = Menu.objects.all().values('id', 'title')
+       all_menu_dict = {}
+       for item in all_menu_list:
+           item['children'] = []
+           all_menu_dict[item['id']] = item
+   
+       # 获取所有的二级菜单
+       all_second_menu_list = Permission.objects.filter(menu__isnull=False).values('id', 'title', 'menu_id')
+       all_second_menu_dict = {}
+       for item in all_second_menu_list:
+           item['children'] = []
+           all_second_menu_dict[item['id']] = item
+           all_menu_dict[item['menu_id']]['children'].append(item)
+   
+       # 获取所有的三级菜单
+       all_permissions_list = Permission.objects.filter(menu__isnull=True).values('id', 'title', 'pid_id')
+       for item in all_permissions_list:
+           pid = item['pid_id']
+           if not pid:
+               continue
+           all_second_menu_dict[pid]['children'].append(item)
+       return render(request, 'rbac/distibute_permissions.html', {
+           'user_list': all_user_list,
+           'role_list': all_role_list,
+           'all_menu_list': all_menu_list,
+           'uid': uid,
+           'user_has_roles_dict': user_has_roles_dict,
+           'user_has_permissions_dict': role_has_permissions_dict or user_has_permissions_dict,
+           'rid': rid
+       })
+   
+   ```
+
+   模板文件：
+
+   ```html
+   {% extends 'layout.html' %}
+   {% load rbac %}
+   
+   {% block css %}
+   .user-area ul {
+   padding-left: 20px;
+   }
+   
+   .user-area li {
+   cursor: pointer;
+   padding: 2px 0;
+   list-style:none;
+   }
+   
+   .user-area li a {
+   display: block;
+   }
+   
+   .user-area li.active {
+   font-weight: bold;
+   color: red;
+   }
+   
+   .user-area li.active a {
+   color: red;
+   }
+   
+   .role-area tr td a {
+   display: block;
+   }
+   
+   .role-area tr.active {
+   background-color: #f1f7fd;
+   border-left: 3px solid #fdc00f;
+   }
+   
+   .panel-body {
+   font-size: 12px;
+   }
+   table {
+   font-size: 12px;
+   }
+   
+   .permission-area tr.root {
+   background-color: #f1f7fd;
+   }
+   
+   .permission-area tr.root td i {
+   margin: 3px;
+   }
+   
+   .permission-area .node {
+   
+   }
+   
+   .permission-area .node input[type='checkbox'] {
+   margin: 0 5px;
+   }
+   
+   .permission-area .node .parent {
+   padding: 5px 0;
+   }
+   
+   .permission-area .node label {
+   font-weight: normal;
+   margin-bottom: 0;
+   font-size: 12px;
+   }
+   
+   .permission-area .node .children {
+   padding: 0 0 0 20px;
+   }
+   
+   .permission-area .node .children .child {
+   display: inline-block;
+   margin: 2px 5px;
+   }
+   
+   .select-help {
+   float: right;
+   }
+   
+   .select-help label {
+   font-weight: normal;
+   cursor: pointer;
+   }
+   
+   .select-help .check-all {
+   float: left;
+   display: inline-block;
+   margin-right: 8px;
+   }
+   {% endblock %}
+   {% block content %}
+   
+   <div class="luffy-container">
+       <div class="col-md-2 user-area">
+           <div class="panel panel-default">
+               <div class="panel-heading">
+                   <i class="fa fa-book" aria-hidden="true"></i>用户信息
+               </div>
+               <div class="panel-body">
+                   <ul>
+                       {% for user in user_list %}
+                       <li class="{% if uid == user.id|safe  %}active{% endif %}">
+                           <a href="?uid={{ user.id }}">{{ user.name }}</a></li>
+                       {% endfor %}
+                   </ul>
+               </div>
+           </div>
+   
+       </div>
+       <div class="col-md-3 role-area">
+           <div class="panel panel-default">
+               <!-- Default panel contents -->
+               <div class="panel-heading">
+                   <i class="fa fa-envelope-square" aria-hidden="true"></i>角色信息
+                   {% if uid %}
+                   <a href="" class="btn btn-success right btn-xs" style="padding: 2px 8px;margin:-3px">
+                       <i class="fa fa-save" aria-hidden="true"></i>
+                       保存
+                   </a>
+                   {% endif %}
+               </div>
+               <div class="panel-body">
+                   提示：点击用户后才能分配角色
+               </div>
+               <!-- Table -->
+               <table class="table">
+                   <thead>
+                   <tr>
+                       <th>角色</th>
+                       <th>选项</th>
+                   </tr>
+                   </thead>
+                   <tbody>
+                   {% for role in role_list %}
+                   <tr class='{% if role.id|safe == rid %}active{% endif %}'>
+                       <td>
+                           {% if uid %}
+                           <a href="?uid={{ uid }}&rid={{ role.id }}">{{ role.title }}</a>
+                           {% else %}
+                           <a href="?rid={{ role.id }}">{{ role.title }}</a>
+                           {% endif %}
+                       </td>
+                       <td>
+                           <input type="checkbox" name="roles"
+                                  value="{{ role.id }}" {% if role.id in user_has_roles_dict %}checked{% endif %}>
+                       </td>
+                   </tr>
+                   {% endfor %}
+                   </tbody>
+               </table>
+           </div>
+   
+       </div>
+       <div class="col-md-7 permission-area">
+           <div class="panel panel-default">
+               <div class="panel-heading">
+                   <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>权限分配
+                   {% if rid %}
+                   <a href="" class="btn btn-success right btn-xs" style="padding: 2px 8px;margin:-3px">
+                       <i class="fa fa-save" aria-hidden="true"></i>
+                       保存
+                   </a>
+                   {% endif %}
+               </div>
+               <div class="panel-body">
+                   提示：点击角色后才能为其分配权限
+               </div>
+               <table class="table">
+                   <tbody>
+                   {% for item in all_menu_list %}
+                   <tr class="root">
+                       <td>
+                           <i class="fa fa-caret-down" aria-hidden="true"></i>
+                           {{ item.title }}
+   
+                           <div class="select-help">
+                               <div class="check-all">
+                                   <label for="check_all_{{ item.id }}">全选</label>
+                                   <input id="check_all_{{ item.id }}" type="checkbox">
+                               </div>
+                           </div>
+                       </td>
+                   </tr>
+                   {% if item.children %}
+                   <tr class="node">
+                       <td>
+                           {% for node in item.children %}
+                           <div class="parent">
+                               <input id="permission_{{ node.id }}" name="permissions"
+                                      {% if node.id in user_has_permissions_dict %}checked{% endif %}
+                                      value="{{ node.id }}" type="checkbox">
+   
+                               <label for="permission_{{ node.id }}">{{ node.title }}（菜单）</label>
+                           </div>
+                           <div class="children">
+                               {% for child in node.children %}
+                               <div class="child">
+   
+                                   <input id="permission_{{ child.id }}" name="permissions"
+                                          {% if child.id in user_has_permissions_dict %}checked{% endif %}
+                                          type="checkbox" value="{{ child.id }}">
+   
+                                   <label for="permission_{{ child.id }}">{{ child.title }}</label>
+                               </div>
+                               {% endfor %}
+                           </div>
+                           {% endfor %}
+                       </td>
+                   </tr>
+                   {% endif %}
+                   {% endfor %}
+                   </tbody>
+               </table>
+           </div>
+   
+       </div>
+   
+   </div>
+   
+   {% endblock %}
+   ```
+
+   
 
 3. 角色和权限的分配
 
