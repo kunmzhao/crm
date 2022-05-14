@@ -325,6 +325,22 @@ def distribute_permissions(request):
     :param request:
     :return:
     """
+    uid = request.GET.get('uid')
+    user_obj = User.objects.filter(id=uid).first()
+    if not user_obj:
+        uid = None
+
+    if uid:
+        # 获取当前用户所拥有的所有角色
+        user_has_roles = user_obj.roles.all()
+        # 获取当前用户所拥有的权限
+        user_has_permissions = user_obj.roles.filter(permissions__id__isnull=False).values('permissions__id').distinct()
+    else:
+        user_has_roles = []
+        user_has_permissions = []
+    user_has_roles_dict = {item.id: item for item in user_has_roles}
+    user_has_permissions_dict = {item['permissions__id']: None for item in user_has_permissions}
+    print(user_has_permissions_dict)
     # 获取所有用户
     all_user_list = User.objects.all()
 
@@ -353,9 +369,11 @@ def distribute_permissions(request):
         if not pid:
             continue
         all_second_menu_dict[pid]['children'].append(item)
-    print(all_menu_list)
     return render(request, 'rbac/distibute_permissions.html', {
         'user_list': all_user_list,
         'role_list': all_role_list,
-        'all_menu_list': all_menu_list
+        'all_menu_list': all_menu_list,
+        'uid': uid,
+        'user_has_roles_dict': user_has_roles_dict,
+        'user_has_permissions_dict': user_has_permissions_dict
     })

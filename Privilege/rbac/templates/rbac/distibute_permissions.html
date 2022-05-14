@@ -9,6 +9,7 @@ padding-left: 20px;
 .user-area li {
 cursor: pointer;
 padding: 2px 0;
+list-style:none;
 }
 
 .user-area li a {
@@ -34,6 +35,9 @@ border-left: 3px solid #fdc00f;
 }
 
 .panel-body {
+font-size: 12px;
+}
+table {
 font-size: 12px;
 }
 
@@ -90,28 +94,33 @@ margin-right: 8px;
 {% block content %}
 
 <div class="luffy-container">
-    <div class="col-md-3">
+    <div class="col-md-2 user-area">
         <div class="panel panel-default">
-            <!-- Default panel contents -->
             <div class="panel-heading">
                 <i class="fa fa-book" aria-hidden="true"></i>用户信息
             </div>
             <div class="panel-body">
                 <ul>
                     {% for user in user_list %}
-                    <li>{{ user.name }}</li>
+                    <li class="{% if uid == user.id|safe  %}active{% endif %}">
+                        <a href="?uid={{ user.id }}">{{ user.name }}</a></li>
                     {% endfor %}
                 </ul>
             </div>
         </div>
 
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3 role-area">
         <div class="panel panel-default">
             <!-- Default panel contents -->
             <div class="panel-heading">
                 <i class="fa fa-envelope-square" aria-hidden="true"></i>角色信息
-
+                {% if uid %}
+                <a href="" class="btn btn-success right btn-xs" style="padding: 2px 8px;margin:-3px">
+                    <i class="fa fa-save" aria-hidden="true"></i>
+                    保存
+                </a>
+                {% endif %}
             </div>
             <div class="panel-body">
                 提示：点击用户后才能分配角色
@@ -130,7 +139,9 @@ margin-right: 8px;
                     <td>
                         {{ role.title }}
                     </td>
-                    <td><input type="checkbox" name="roles" value="{{ role.id }}"></td>
+                    <td>
+                        <input type="checkbox" name="roles" value="{{ role.id }}" {% if role.id in user_has_roles_dict %}checked{% endif %}>
+                    </td>
                 </tr>
                 {% endfor %}
                 </tbody>
@@ -138,7 +149,7 @@ margin-right: 8px;
         </div>
 
     </div>
-    <div class="col-md-5 permission-area">
+    <div class="col-md-7 permission-area">
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>权限分配
