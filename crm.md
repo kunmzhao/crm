@@ -2322,6 +2322,8 @@ class UserResetPasswordModelForm(forms.ModelForm):
 
 3. 角色和权限的分配
 
+1.12 权限组件文档编写
+
 ## 二. 增删改查组件
 
 ## 三. CRM业务组件
